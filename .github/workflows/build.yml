@@ -1,0 +1,32 @@
+name: Build IPA
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unpack project
+        run: unzip -o Fa1Blox-ios.zip -d ios
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate
+      - name: Build app
+        working-directory: ios
+        run: |
+          xcodebuild -project Fa1Blox.xcodeproj -scheme Fa1Blox -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
+      - name: Package IPA
+        working-directory: ios
+        run: |
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/Fa1Blox.app Payload/
+          zip -qry Fa1Blox.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Fa1Blox-ipa
+          path: ios/Fa1Blox.ipa
